@@ -17,7 +17,7 @@ Po Syntax:
 package main
 
 import (
-	"github.com/strickyak/prego"
+	"github.com/nplanel/prego"
 
 	"log"
 	"os"

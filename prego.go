@@ -35,6 +35,10 @@ var MatchOneQuote = regexp.MustCompile(`^[^"]*["][^"]*$`)
 
 var logWarning = log.New(os.Stderr, "", 0)
 
+var MatchSkip = regexp.MustCompile("/\\*")
+var MatchSkipOneBackquote = regexp.MustCompile("`{1}")
+var MatchSkipEnd = regexp.MustCompile("\\*/")
+
 type Macro struct {
 	Inline  bool // T if `inline`, F if `macro`
 	Args    []string
@@ -53,6 +57,8 @@ type Po struct {
 	Lines    []string
 	I        int
 	Inlining bool
+
+	skip bool
 }
 
 func (po *Po) Fatalf(s string, args ...interface{}) {
@@ -213,6 +219,21 @@ func Tidy(t string) string {
 func (po *Po) DoLine(i int) int {
 	s := po.Lines[i]
 	lineNum := i + 1
+
+	if po.skip {
+		Fprintf(po.W, s+"\n")
+		if MatchSkipEnd.FindStringSubmatch(s) != nil || MatchSkipOneBackquote.FindStringSubmatch(s) != nil {
+			po.skip = false
+		}
+		return i + 1
+	}
+	skip := MatchSkip.FindStringSubmatch(s) != nil || MatchSkipOneBackquote.FindStringSubmatch(s) != nil
+	if skip {
+		po.skip = true
+		Fprintf(po.W, s+"\n")
+		return i + 1
+	}
+
 	mplusprego := MatchPlusBuildPrego.FindStringSubmatch(s)
 	if mplusprego != nil {
 		Fprintf(po.W, "//\n")
